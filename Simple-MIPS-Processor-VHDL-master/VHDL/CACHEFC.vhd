@@ -3,14 +3,17 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity CFC is
-port(I1, I2, I3: in std_ulogic_vector(31 downto 0);
+port(I1, I2: in std_ulogic_vector(31 downto 0);
+	 I3: in std_ulogic_vector(63 downto 0);
      C1, C2, C3, C4: in std_ulogic;
-     O1, O2: out std_ulogic_vector(31 downto 0);
+     O1: out std_ulogic_vector(31 downto 0);
+	 O2: out std_ulogic_vector(63 downto 0);
      O3, O4: out std_ulogic);
 end CFC;
 
 architecture CFC1 of CFC is
-signal D1, D2, D3, D8, D9: std_ulogic_vector(31 downto 0) := (others => '0');
+signal D1, D8, D2: std_ulogic_vector(31 downto 0) := (others => '0');
+signal D3, D9: std_ulogic_vector(63 downto 0) := (others => '0');
 signal D4, D5, D6, D7, D10, D11: std_ulogic := '0';
 begin
 	D1 <= I1; --address
@@ -29,7 +32,8 @@ begin
 			D10 <= '1';
 			D11 <= '0';
 		else
-			D9 <= D2;
+			D9(31 downto 0) <= D2;
+			D9(63 downto 32) <= (others => '0');
 			D10 <= D4;
 			D11 <= D5;
 		end if;
