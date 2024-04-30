@@ -3,7 +3,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity CACHEL1 is
-port(I1,I2: in std_ulogic_vector(31 downto 0); --I1: Address, I2: Data to be written
+port(I1: in std_ulogic_vector(31 downto 0); --I1: Address
+	 I2: in std_ulogic_vector(63 downto 0); -- I2: Data to be written
      O1,O2: out std_ulogic_vector(31 downto 0); --O1: Data read from cache, O2: Writeback Data
      O3, O4: out std_ulogic; -- O3: Hit Status , O4: Ready Status
      C1, C2: in std_ulogic); -- C1: Write control, C2: Read control
@@ -12,7 +13,8 @@ end CACHEL1;
 architecture CACHEL11 of CACHEL1 is
 type MEMORY is array (0 to 31) of std_ulogic_vector(59 downto 0); --This is an array that initalizes 32 blocks of 60 bits memory structure
 signal M1: MEMORY := (others => (others => '0')); --Initialize everything to 0
-signal D1, D2, R2, R3: std_ulogic_vector(31 downto 0) := (others => '0'); --R2: Signal storing the data that is read from the cache. R3: Stores the data needed to writeback to memory
+signal D1, R2, R3: std_ulogic_vector(31 downto 0) := (others => '0'); --R2: Signal storing the data that is read from the cache. R3: Stores the data needed to writeback to memory
+signal D2: std_ulogic_vector(63 downto 0) := (others => '0');
 signal D3, D4, HIT, READY: std_ulogic := '0';
 begin
 	D1 <= transport I1 after 13 ns; --address (TAG&POINTER) derived from I1
@@ -64,7 +66,8 @@ begin
 			end if;
 		else if(D3 = '1' and D4 = '0') then --write
 			if(VALIDFLAG = '0') then --write the data into the cache (no hit = '0' because the previous data is invalid)
-				M1(to_integer(unsigned(D1(4 downto 0)))) <= '1'&D1(31 downto 5)&D2;
+				M1(to_integer(unsigned(D1(4 downto 0)))) <= '1'&D1(31 downto 5)&D2(63 downto 32);
+				M1(to_integer(unsigned(D1(4 downto 0))) + 1) <= '1'&D1(31 downto 5)&D2(31 downto 0);
 				HITFLAG := '1';
 				READYFLAG := '1';
 			else if(VALIDFLAG = '1') then
