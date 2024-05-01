@@ -40,8 +40,15 @@ port(I1, I2, I3: in std_ulogic_vector(31 downto 0);
      O3, O4: out std_ulogic);
 end component;
 
-signal ADDRESS, WRITE_DATA, ADDRESS1, WRITE_DATA1, D3, D4, D5, D6, D7, R1: std_ulogic_vector(31 downto 0) := (others => '0');
-signal MEMWRITE, MEMREAD, MEMWRITE1, MEMREAD1, HIT, L1READY, HIT_D, MEMWRITE_D, MEMREAD_D, L2READY, MUXCTRL, READREADY, WRITEREADY: std_ulogic := '0';
+component MSHR is
+    port (
+        clk, reset, miss: in std_logic;
+        Address, Data: in std_ulogic_vector(31 downto 0);
+        O1: out std_ulogic_vector(31 downto 0));
+end component;
+
+signal Datain, addressIn, addressOut, ADDRESS, WRITE_DATA, ADDRESS1, WRITE_DATA1, D3, D4, D5, D6, D7, R1: std_ulogic_vector(31 downto 0) := (others => '0');
+signal clock, rst, cacheMiss, MEMWRITE, MEMREAD, MEMWRITE1, MEMREAD1, HIT, L1READY, HIT_D, MEMWRITE_D, MEMREAD_D, L2READY, MUXCTRL, READREADY, WRITEREADY: std_ulogic := '0';
 begin
 	ADDRESS <= I1; --Address
 	WRITE_DATA <= I2; --Write Data
@@ -55,6 +62,7 @@ begin
 	CFC1: CFC port map(ADDRESS, WRITE_DATA, D7, MEMWRITE, MEMREAD, L2READY, HIT, ADDRESS1, WRITE_DATA1, MEMWRITE1, MEMREAD1);
 	CACHEL11: CACHEL1 port map(ADDRESS1, WRITE_DATA1, D3, D4, HIT, L1READY, MEMWRITE1, MEMREAD1);
 	CC1: CC port map(D3, D4, D5, D6, HIT_D, MEMWRITE_D, MEMREAD_D, MUXCTRL, WRITEREADY, L1READY, HIT, MEMWRITE, MEMREAD);
+	MSHR1: MSHR port map(clock, rst, cacheMiss, addressIn, Datain, addressOut);
 
 	--D5 = D3 = dato letto o indirizzo da leggere in memoria
 	--D6 = D4 = dato da scrivere in memoria (write back)

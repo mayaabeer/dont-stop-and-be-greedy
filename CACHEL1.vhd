@@ -57,7 +57,7 @@ begin
 				READYFLAG := '1';
 			end if;
 		else if(D3 = '1' and D4 = '0') then --scrittura
-			if(VALIDFLAG = '0') then --scrivo il dato nella cache (ho hit = '0' in quanto il dato precedente è NON valido)
+			if(VALIDFLAG = '0') then --scrivo il dato nella cache (ho hit = '0' in quanto il dato precedente ï¿½ NON valido)
 				M1(to_integer(unsigned(D1(4 downto 0)))) <= '1'&D1(31 downto 5)&D2;
 				HITFLAG := '1';
 				READYFLAG := '1';

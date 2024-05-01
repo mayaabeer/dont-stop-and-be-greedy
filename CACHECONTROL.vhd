@@ -1,21 +1,29 @@
 -- manage memory read and write
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
 
+ENTITY CC IS
+	PORT (
+		I1, I2 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
+		O1, O2 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0);
+		O3, O4, O5, O6, O7 : OUT STD_ULOGIC;
+		I3, I4, C1, C2 : IN STD_ULOGIC);
+END CC;
 
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+ARCHITECTURE CC1 OF CC IS
+COMPONENT MSHR IS
+PORT (
+	clk, reset, miss : IN STD_LOGIC;
+	Address, Data : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
+	O1 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0));
+END COMPONENT;
 
-entity CC is
-port(I1, I2: in std_ulogic_vector(31 downto 0);
-     O1, O2: out std_ulogic_vector(31 downto 0);
-     O3, O4, O5, O6, O7: out std_ulogic;
-     I3, I4, C1, C2: in std_ulogic);
-end CC;
+	SIGNAL Datain, D1, D2, D7, D8, addressIn, addressOut : STD_ULOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
+	SIGNAL D3, D4, D5, D6, D9, D10, D11, D12, D13, clock, rst, cacheMiss : STD_ULOGIC := '0';
+BEGIN
 
-architecture CC1 of CC is
-signal D1, D2, D7, D8: std_ulogic_vector(31 downto 0) := (others => '0');
-signal D3, D4, D5, D6, D9, D10, D11, D12, D13: std_ulogic := '0';
-begin
+MSHR1: MSHR port map(clock, rst, cacheMiss, addressIn, DataIn, addressOut);
 
 	D1 <= I1; --data or address read from memory, assigns input port I1 to D1
 	D2 <= I2; --(write back)
@@ -24,33 +32,38 @@ begin
 	D5 <= C1; --memwrite (signal to control write operations)
 	D6 <= C2; --memread (control read)
 
-	control:process(D1, D2, D3, D4, D5, D6)
-	variable WRITEFLAG: std_ulogic := '0';
-	begin
+	control : PROCESS (D1, D2, D3, D4, D5, D6)
+		VARIABLE WRITEFLAG : STD_ULOGIC := '0';
+	BEGIN
 		D7 <= D1; --data read
 		D8 <= D2; --data write back
 		WRITEFLAG := '0';
 
-		if(D3 = '1' and D4 = '1' and D5 = '0' and D6 = '1') then --lettura cache andata a buon fine
+		IF (D3 = '1' AND D4 = '1' AND D5 = '0' AND D6 = '1') THEN --Cache read successful. from L1
 			D10 <= '0';
 			D11 <= '0';
 			D12 <= '1';
-		else if(D3 = '1' and D4 = '0' and D5 = '0' and D6 = '1') then --lettura cache non andata a buon fine -> leggo dalla memoria
-			D10 <= '0';
-			D11 <= '1';
-			D12 <= '0';
-		else if(D3 = '1' and D4 = '1' and D5 = '1' and D6 = '0') then --scrittura andata a buon fine
-			WRITEFLAG := '1';
-		else if(D3 = '1' and D4 = '0' and D5 = '1' and D6 = '0') then --scrittura non andata a buon fine (writeback)
-			D10 <= '1';
-			D11 <= '0';
-			WRITEFLAG := '1';
-		end if;
-		end if;
-		end if;
-		end if;
+		ELSE
+			IF (D3 = '1' AND D4 = '0' AND D5 = '0' AND D6 = '1') THEN --Cache read unsuccessful -> Read from memory.
+				D10 <= '0';
+				D11 <= '1';
+				D12 <= '0';
+				cacheMiss <= '1';
+				addressIn <= D7;
+			ELSE
+				IF (D3 = '1' AND D4 = '1' AND D5 = '1' AND D6 = '0') THEN --Write successful.
+					WRITEFLAG := '1';
+				ELSE
+					IF (D3 = '1' AND D4 = '0' AND D5 = '1' AND D6 = '0') THEN --Write unsuccessful (writeback).
+						D10 <= '1';
+						D11 <= '0';
+						WRITEFLAG := '1';
+					END IF;
+				END IF;
+			END IF;
+		END IF;
 		D13 <= WRITEFLAG;
-	end process;
+	END PROCESS;
 
 	O1 <= D7; --address mem
 	O2 <= D8; --write data to mem
@@ -60,4 +73,4 @@ begin
 	O6 <= D12; --mux ctrl
 	O7 <= D13; --write ready
 
-end CC1;
+END CC1;
