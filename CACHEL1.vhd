@@ -12,7 +12,8 @@ END CACHEL1;
 
 ARCHITECTURE CACHEL11 OF CACHEL1 IS
 	TYPE MEMORY IS ARRAY (0 TO 31) OF STD_ULOGIC_VECTOR(59 DOWNTO 0); --This is an array that initalizes 32 blocks of 60 bits memory structure
-	SIGNAL M1 : MEMORY := (OTHERS => (OTHERS => '0')); --Initialize everything to 0
+	SIGNAL M1 : MEMORY := ("100000000000000000000000000000000000000000000000000000000001",
+	OTHERS => (OTHERS => '0'));
 	SIGNAL D1, D2, R2, R3 : STD_ULOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0'); --R2: Signal storing the data that is read from the cache. R3: Stores the data needed to writeback to memory
 	SIGNAL D3, D4, HIT, READY : STD_ULOGIC := '0';
 BEGIN
@@ -71,13 +72,13 @@ BEGIN
 					READYFLAG := '1';
 				ELSE
 					IF (VALIDFLAG = '1') THEN
-						IF (HITFLAG = '1') THEN  --update the data
+						IF (HITFLAG = '1') THEN --update the data
 							M1(to_integer(unsigned(D1(4 DOWNTO 0)))) <= '1' & D1(31 DOWNTO 5) & D2; --valid data, same tag, new data
 							READYFLAG := '1';
 						ELSE -- tags don't match -> perform write back
-							R3 <= MEMDATA(31 DOWNTO 0);  --data to be written back to memory (write-back data)
+							R3 <= MEMDATA(31 DOWNTO 0); --data to be written back to memory (write-back data)
 							R2 <= MEMDATA(58 DOWNTO 32) & D1(4 DOWNTO 0);
-							M1(to_integer(unsigned(D1(4 DOWNTO 0)))) <= '1' & D1(31 DOWNTO 5) & D2;  --valid data, different tag, new data
+							M1(to_integer(unsigned(D1(4 DOWNTO 0)))) <= '1' & D1(31 DOWNTO 5) & D2; --valid data, different tag, new data
 							READYFLAG := '1';
 						END IF;
 					END IF;

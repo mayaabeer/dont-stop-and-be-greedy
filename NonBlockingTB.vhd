@@ -1,5 +1,3 @@
---declare MSHR, CacheL1, CacheL2, HDU,
-
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
@@ -7,69 +5,99 @@ USE ieee.numeric_std.ALL;
 ENTITY NonBlockingTb IS
 END NonBlockingTb;
 
-ARCHITECTURE TBMIPS OF TB IS
+ARCHITECTURE TBMIPS OF NonBlockingTb IS
 
     COMPONENT MSHR IS
         PORT (
             clk, reset, miss : IN STD_LOGIC;
             addressIn, dataIn : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
             dataOut, addressOut : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0);
-            rt : IN STD_ULOGIC_VECTOR(4 DOWNTO 0)
+            rt_in : IN STD_ULOGIC_VECTOR(4 DOWNTO 0);
+            rt_out : OUT STD_ULOGIC_VECTOR(4 DOWNTO 0);
+            dataReady : IN STD_LOGIC;
+            addressReady : IN STD_LOGIC;
+            dataReadyOut : OUT STD_LOGIC
         );
     END COMPONENT;
 
     COMPONENT CACHEL1 IS
         PORT (
-            I1, I2 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0); --I1: Address, I2: Data to be written
-            O1, O2 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0); --O1: Data read from cache, O2: Writeback Data
-            O3, O4 : OUT STD_ULOGIC; -- O3: Hit Status , O4: Ready Status
-            C1, C2 : IN STD_ULOGIC); -- C1: Write control, C2: Read control
+            I1, I2 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
+            O1, O2 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0);
+            O3, O4 : OUT STD_ULOGIC;
+            C1, C2 : IN STD_ULOGIC
+        );
     END COMPONENT;
 
     COMPONENT CACHEL2 IS
         GENERIC (N : INTEGER);
         PORT (
-            I1, I2 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0); --address and data
-            O1 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0); --return data for read signal
-            O2 : OUT STD_ULOGIC; --called L2Ready. Can cache serve the operation?
-            C1, C2 : IN STD_ULOGIC); -- write OR read signal
+            I1, I2 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
+            O1 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0);
+            O2 : OUT STD_ULOGIC;
+            C1, C2 : IN STD_ULOGIC
+        );
     END COMPONENT;
 
-    COMPONENT HDU IS
-        PORT (
-            I1 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
-            I2 : IN STD_ULOGIC_VECTOR(4 DOWNTO 0);
-            I3 : IN STD_ULOGIC;
-            O1, O2, O3 : OUT STD_ULOGIC);
-    END COMPONENT;
+    SIGNAL mshr_addressIn, mshr_dataOut, mshr_addressOut, l1_writeData, l1_readData, l1_writebackData : STD_ULOGIC_VECTOR(31 DOWNTO 0);
+    SIGNAL mshr_miss, mshr_reset, mshr_clk, l1_hit, l1_ready, l1_write, l1_read : STD_LOGIC;
+    SIGNAL l1_address, l2_address, l2_dataOut, mshr_dataIn, l2_dataIn : STD_ULOGIC_VECTOR(31 DOWNTO 0);
+    SIGNAL mshr_dataReady, mshr_addressReady, mshr_dataReadyOut, l2_ready, l2_write, l2_read : STD_LOGIC;
+    SIGNAL sig_rt, mshr_rt_in, mshr_rt_out : STD_ULOGIC_VECTOR(4 DOWNTO 0);
 
-    COMPONENT REG IS
-        PORT (
-            I1, I2, I3 : IN STD_ULOGIC_VECTOR(4 DOWNTO 0);
-            I4 : IN STD_ULOGIC_VECTOR(31 DOWNTO 0);
-            C1 : IN STD_ULOGIC;
-            O1, O2 : OUT STD_ULOGIC_VECTOR(31 DOWNTO 0));
-    END COMPONENT;
-
-    SIGNAL mshr_addressOut : STD_ULOGIC_VECTOR(31 DOWNTO 0);
-    SIGNAL mshr_miss : STD_LOGIC;
 BEGIN
 
-    MSHR1 : MSHR PORT MAP(mshr_clk, mshr_reset, mshr_miss, mshr_addressIn, mshr_dataIn, mshr_dataOut, mshr_addressOut, mshr_rt, mshr_dataReady, mshr_addressReady);
-    CACHEL1 : CACHEL11 PORT MAP(l1_address, l1_writeData, l1_readData, l1_writebackData, l1_hit, l1_ready, l1_write, l1_read);
-    CACHEL2 : CACHEL21 PORT MAP(l2_address, l2_dataIn, l2_dataOut, l2_ready, l2_write, l2_read);
-    HDU : HDU1 PORT MAP(hdu_instruction, hdu_rt1, hdu_read, hdu_mux, hdu_pc, hud_IFID);
-    --REG : REG1 PORT MAP(reg_readreg1, reg_redreg2, );
-    mshr_miss <=  not l1_hit;
-    if(mshr_miss = '1')
-        mshr_addressIn <= l1_readData;
-        mshr_addressReady <= '1';
-    END IF;
-    if(mshr_addressReady = '1')
-        l2_address <= mshr_addressOut;
-        mshr_dataIn <= l2_dataOut;
-        mshr_dataReady <= '1';
-    END IF;
+    MSHR1 : MSHR PORT MAP(
+        mshr_clk, mshr_reset, mshr_miss, mshr_addressIn, mshr_dataIn,
+        mshr_dataOut, mshr_addressOut, mshr_rt_in, mshr_rt_out,
+        mshr_dataReady, mshr_addressReady, mshr_dataReadyOut
+    );
+
+    CACHEL11 : CACHEL1 PORT MAP(
+        l1_address, l1_writeData, l1_readData, l1_writebackData,
+        l1_hit, l1_ready, l1_write, l1_read
+    );
+
+    CACHEL21 : CacheL2 GENERIC MAP(N => 32)
+    PORT MAP(
+        l2_address, l2_dataIn, l2_dataOut, l2_ready, l2_write, l2_read
+    );
+
+    clkGEN : PROCESS
+    BEGIN
+        mshr_clk <= '0';
+        WAIT FOR 50 ns;
+        mshr_clk <= '1';
+        WAIT FOR 50 ns;
+    END PROCESS;
+
+    setReg : PROCESS
+    BEGIN
+        WAIT FOR 20 ns;
+        sig_rt <= "00010";
+        l1_address <= "00000000000000000000000000000001";
+    END PROCESS;
+
+    PROCESS (mshr_clk)
+    BEGIN
+        mshr_rt_in <= sig_rt;
+        IF rising_edge(mshr_clk) THEN
+            mshr_miss <= NOT l1_hit;
+
+            IF mshr_miss = '1' THEN
+                mshr_addressIn <= l1_address;
+                mshr_addressReady <= '1';
+                l2_read <= '1';
+                l2_write <= '0';
+            END IF;
+
+            IF mshr_addressReady = '1' THEN
+                l2_address <= mshr_addressOut;
+                mshr_dataIn <= l2_dataOut;
+                mshr_dataReady <= '1';
+            END IF;
+        END IF;
+    END PROCESS;
 
     --connect data to be fetched from memory to mshr
 END TBMIPS;
