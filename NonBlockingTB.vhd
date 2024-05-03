@@ -16,7 +16,8 @@ ARCHITECTURE TBMIPS OF NonBlockingTb IS
             rt_out : OUT STD_ULOGIC_VECTOR(4 DOWNTO 0);
             dataReady : IN STD_LOGIC;
             addressReady : IN STD_LOGIC;
-            dataReadyOut : OUT STD_LOGIC
+            dataReadyOut : OUT STD_LOGIC;
+            mshr_ready : OUT STD_LOGIC
         );
     END COMPONENT;
 
@@ -40,7 +41,7 @@ ARCHITECTURE TBMIPS OF NonBlockingTb IS
     END COMPONENT;
 
     SIGNAL mshr_addressIn, mshr_dataOut, mshr_addressOut, l1_writeData, l1_readData, l1_writebackData : STD_ULOGIC_VECTOR(31 DOWNTO 0);
-    SIGNAL mshr_miss, mshr_reset, mshr_clk, l1_hit, l1_ready, l1_write, l1_read : STD_LOGIC;
+    SIGNAL mshr_miss, mshr_reset, mshr_clk, l1_hit, l1_ready, l1_write, l1_read, mshr_ready : STD_LOGIC;
     SIGNAL l1_address, l2_address, l2_dataOut, mshr_dataIn, l2_dataIn : STD_ULOGIC_VECTOR(31 DOWNTO 0);
     SIGNAL mshr_dataReady, mshr_addressReady, mshr_dataReadyOut, l2_ready, l2_write, l2_read : STD_LOGIC;
     SIGNAL sig_rt, mshr_rt_in, mshr_rt_out : STD_ULOGIC_VECTOR(4 DOWNTO 0);
@@ -50,7 +51,7 @@ BEGIN
     MSHR1 : MSHR PORT MAP(
         mshr_clk, mshr_reset, mshr_miss, mshr_addressIn, mshr_dataIn,
         mshr_dataOut, mshr_addressOut, mshr_rt_in, mshr_rt_out,
-        mshr_dataReady, mshr_addressReady, mshr_dataReadyOut
+        mshr_dataReady, mshr_addressReady, mshr_dataReadyOut, mshr_ready
     );
 
     CACHEL11 : CACHEL1 PORT MAP(

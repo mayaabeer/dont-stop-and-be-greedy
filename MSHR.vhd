@@ -21,7 +21,7 @@ ARCHITECTURE MSHR1 OF MSHR IS
     --SIGNAL M1 : MEMORY := (OTHERS => (OTHERS => '0'));
     SIGNAL missedAddress, missedData : STD_ULOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
     SIGNAL sig_rt_out : STD_ULOGIC_VECTOR(4 DOWNTO 0);
-    SIGNAL sig_addressReady, Sig_dataReady : STD_LOGIC := '0';
+    SIGNAL sig_addressReady, Sig_dataReady, MSHR_ready_sig : STD_LOGIC := '0';
 BEGIN
     PROCESS (clk, reset)
     BEGIN
@@ -31,10 +31,11 @@ BEGIN
             END IF;
             IF (addressReady = '1') THEN
                 missedData <= dataIn;
-                
+            END IF;
+            IF (dataReady = '1') THEN
+            MSHR_ready_sig <= '1';
             END IF;
             sig_rt_out <= rt_in;
-
         END IF;
     END PROCESS;
 
@@ -42,5 +43,6 @@ BEGIN
     dataOut <= missedData;
     dataReadyOut <= dataReady;
     rt_out <= sig_rt_out;
+    MSHR_ready <= MSHR_ready_sig;
 
 END MSHR1;
